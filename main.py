@@ -17,9 +17,6 @@ df_items = pd.read_parquet(ruta_parquet_items)
 
 
 
-if __name__ == "__main__":
-    uvicorn.run(app)
-
 @app.get("/")
 async def index():
     return {"message": "Hola"}
