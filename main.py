@@ -2,6 +2,10 @@ import pandas as pd
 from fastapi import FastAPI
 from typing import Optional
 import uvicorn
+#import sklearn
+#from sklearn.metrics.pairwise import cosine_similarity
+
+app = FastAPI()
 
 ruta_parquet_games = "datasets/data_steam_games.parquet.gz"
 ruta_parquet_reviews = "datasets/data_reviews.parquet.gz"
@@ -11,14 +15,14 @@ df_games = pd.read_parquet(ruta_parquet_games)
 df_reviews = pd.read_parquet(ruta_parquet_reviews)
 df_items = pd.read_parquet(ruta_parquet_items)
 
-app = FastAPI()
+
 
 if __name__ == "__main__":
     uvicorn.run(app)
 
 @app.get("/")
 def index():
-    return {"message": "Hello World"}
+    return {"message": "Hola"}
 
 
 @app.get("/PlayTimeGenre/{genero}")
