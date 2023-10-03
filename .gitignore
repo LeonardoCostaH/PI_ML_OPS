@@ -7,3 +7,4 @@ datasets/australian_user_reviews.json
 datasets/users_items.csv
 datasets/australian_users_items.json
 datasets/steam_games.csv
+/venv
