@@ -2,8 +2,8 @@ import pandas as pd
 from fastapi import FastAPI
 from typing import Optional
 import uvicorn
-#import sklearn
-#from sklearn.metrics.pairwise import cosine_similarity
+import sklearn
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = FastAPI()
 
@@ -21,12 +21,12 @@ if __name__ == "__main__":
     uvicorn.run(app)
 
 @app.get("/")
-def index():
+async def index():
     return {"message": "Hola"}
 
 
 @app.get("/PlayTimeGenre/{genero}")
-def PlayTimeGenre(df_items, df_games, genero:str):
+def PlayTimeGenre(genero:str):
     # Filtrar df_games para obtener solo las filas que contienen el género especificado
     filtered_games = df_games[df_games['genres'].str.contains(genero.capitalize(), case=False, na=False)]
 
@@ -37,10 +37,10 @@ def PlayTimeGenre(df_items, df_games, genero:str):
     result_df = combined_df.groupby('year')['playtime_forever'].sum().reset_index()
     max_year = result_df.loc[result_df['playtime_forever'].idxmax()]
 
-    return max_year
+    return max_year.to_dict()
 
 @app.get("/UserForGenre/{genero}")
-def UserForGenre(df_items, df_games, genero:str):
+def UserForGenre(genero:str):
     # Filtrar df_games para obtener solo las filas que contienen el género especificado
     filtered_games = df_games[df_games['genres'].str.contains(genero, case=False, na=False)]
 
@@ -113,7 +113,7 @@ def sentiment_analysis(df_reviews, year:int):
     filtered_reviews = df_reviews[df_reviews['posted'] == year]
 
     # Contar la cantidad de registros de reseñas para cada categoría de análisis de sentimiento
-    sentiment_counts = filtered_reviews['sentiment_analysis'].value_counts()
+    sentiment_counts = filtered_reviews['sentiment_analysis'].value_counts().to_dict()
 
     # Crear un diccionario con los resultados
     result = {
@@ -122,3 +122,51 @@ def sentiment_analysis(df_reviews, year:int):
         "Positive": sentiment_counts.get(2, 0)   # Contar las reseñas positivas (sentiment_analysis = 2)
     }
     return result
+
+
+# Crear una matriz de usuario-ítem
+user_item_matrix = df_reviews.pivot(index='user_id', columns='item_id', values='recommend').fillna(0)
+
+# Calcular la similitud coseno entre usuarios
+user_similarity = cosine_similarity(user_item_matrix)
+user_similarity_df = pd.DataFrame(user_similarity, index=user_item_matrix.index, columns=user_item_matrix.index)
+
+@app.get("/recomendacion_usuario/{user_id}")
+def recomendacion_usuario(user_id: int):
+    # Obtener las calificaciones del usuario dado
+    user_ratings = user_item_matrix.loc[user_id]
+
+    # Calcular la similitud entre el usuario dado y todos los demás usuarios
+    user_similarities = user_similarity_df[user_id]
+
+    # Calcular la puntuación ponderada de juegos recomendados
+    recommended_scores = user_item_matrix.mul(user_similarities, axis=0).sum()
+
+    # Filtrar juegos que el usuario ya ha calificado
+    recommended_scores = recommended_scores[user_ratings == 0]
+
+    # Ordenar juegos por puntuación
+    recommended_games = recommended_scores.sort_values(ascending=False).index.tolist()[:5]
+
+    return {"juegos_recomendados": recommended_games}
+
+
+# Crear una matriz de características de género por juego
+game_genre_matrix = df_games[['item_id', 'genres']].set_index('item_id')
+
+# Aplicar la codificación one-hot para los géneros
+game_genre_matrix = game_genre_matrix['genres'].str.get_dummies(sep=', ')
+
+# Calcular la similitud del coseno entre juegos basada en género
+item_item_similarity = cosine_similarity(game_genre_matrix, game_genre_matrix)
+item_item_similarity_df = pd.DataFrame(item_item_similarity, index=game_genre_matrix.index, columns=game_genre_matrix.index)
+
+@app.get("/recomendacion_juego/{game_id}")
+def recomendacion_juego(game_id: int):
+    # Obtener la fila de similitudes para el juego dado
+    game_similarity_row = item_item_similarity_df.loc[game_id]
+
+    # Ordenar juegos por similitud
+    recommended_games = game_similarity_row.sort_values(ascending=False).index.tolist()[1:6]
+
+    return {"juegos_recomendados": recommended_games}
