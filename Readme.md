@@ -80,6 +80,11 @@ En este mismo repositorio podras encontrar algunos [links de ayuda](hhttps://git
 
 
 
+## Contacto
+
+- **Nombre**: Leonardo Augusto Costa Hermes
+- **Correo Electrónico**: lcostahermes@gmail.com
+- **LinkedIn**: [/in/leonardo-c-hermes](https://www.linkedin.com/in/leonardo-c-hermes)
   
 <br/>
 
